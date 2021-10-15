@@ -1,3 +1,9 @@
+env:
+  global:
+  # Used for saving generated test datasets. See Notion for details.
+  - secure: FTT6C4vhk88L1RKHmUnbTdXdTyjkhoAhtXwYGAvkrrTngU1uJMZeoFeHLqVf/uxQuNssOrEJsQWGrka5OEd1FAAxUuqTmytxRMuz9A6Z4qp5DiMIDyCB9WF5AdY1cb3XQw5GiPc2BWrmBxxRIKporkaND0UBRmyeHDvppjn0uME=
+  - APPLICATION=ojs
+
 # Configure the build matrix
 matrix:
   include:
@@ -7,12 +13,16 @@ matrix:
   # PostgreSQL / various PHP
   - env: TEST=pgsql
     php: 7.4
-  - env: TEST=pgsql
+  - env:
+    - TEST: pgsql
+    - SAVE_BUILD: true
     php: 8.0
   # MySQL / various PHP
   - env: TEST=mysql
     php: 7.4
-  - env: TEST=mysql
+  - env:
+    - TEST: mysql
+    - SAVE_BUILD: true
     php: 8.0
   # Path info disabled DISABLED pending a fix of pkp/pkp-lib#4414
   # - env: TEST=mysql DISABLE_PATH_INFO=1
@@ -74,6 +84,20 @@ script:
 
 after_script:
   - cat error.log
+
+after_success:
+  - |
+    if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$SAVE_BUILD" == "true" ]]; then
+      git clone https://pkp-machine-user:${GITHUB_ACCESS_KEY}@github.com/pkp/datasets
+      rm -rf datasets/${APPLICATION}/${TRAVIS_BRANCH}/${TEST}
+      mkdir -p datasets/${APPLICATION}/${TRAVIS_BRANCH}/${TEST}
+      zcat ${DATABASEDUMP} > datasets/${APPLICATION}/${TRAVIS_BRANCH}/${TEST}/database.sql
+      tar -C datasets/${APPLICATION}/${TRAVIS_BRANCH}/${TEST} -x -z -f ${FILESDUMP}
+      cd datasets
+      git add --all
+      git commit -m "Update datasets (${TRAVIS_BRANCH})"
+      git push
+    fi
 
 after_failure:
   - sudo apt-get install sharutils
