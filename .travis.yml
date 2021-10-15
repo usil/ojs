@@ -85,20 +85,6 @@ script:
 after_script:
   - cat error.log
 
-after_success:
-  - |
-    if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$SAVE_BUILD" == "true" ]]; then
-      git clone https://pkp-machine-user:${GITHUB_ACCESS_KEY}@github.com/pkp/datasets
-      rm -rf datasets/${APPLICATION}/${TRAVIS_BRANCH}/${TEST}
-      mkdir -p datasets/${APPLICATION}/${TRAVIS_BRANCH}/${TEST}
-      zcat ${DATABASEDUMP} > datasets/${APPLICATION}/${TRAVIS_BRANCH}/${TEST}/database.sql
-      tar -C datasets/${APPLICATION}/${TRAVIS_BRANCH}/${TEST} -x -z -f ${FILESDUMP}
-      cd datasets
-      git add --all
-      git commit -m "Update datasets (${TRAVIS_BRANCH})"
-      git push
-    fi
-
 after_failure:
   - sudo apt-get install sharutils
   - tar cz cypress/screenshots | uuencode /dev/stdout
