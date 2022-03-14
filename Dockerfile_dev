@@ -1,0 +1,79 @@
+FROM ubuntu
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# set shell options (see documentation for more details)
+RUN set -eux
+
+RUN apt-get update
+RUN apt-get install -y software-properties-common curl
+RUN apt-get install -y git
+# RUN git submodule update --init --recursive
+
+RUN LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php
+RUN apt-get update -y
+RUN apt-get install -y apache2 sendmail
+RUN apt-get install -y php8 libapache2-mod-php8 php8-cli php8-common php8-mbstring php8-gd php8-intl php8-xml php8-mysql php8-mcrypt php8-zip
+
+RUN php -v
+
+# enable Apache2 rewrite module
+RUN a2enmod rewrite
+
+## copy custom wordpress code
+
+RUN mkdir -p /var/www/html
+
+WORKDIR /var/www/html
+
+## configure apache
+
+# remove ubuntu apache default page
+RUN rm /var/www/html/index.html
+
+ENV CUSTOM_DOCUMENT_ROOT=\/var\/www\/html
+
+# fix warning
+# AH00558: apache2: Could not reliably determine the server's fully qualified domain name,
+# using 172.17.0.2. Set the 'ServerName' directive globally to suppress this message
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
+RUN echo "<Directory $CUSTOM_DOCUMENT_ROOT>" >> /etc/apache2/apache2.conf
+RUN echo "    Options Indexes FollowSymLinks" >> /etc/apache2/apache2.conf
+RUN echo "    AllowOverride All" >> /etc/apache2/apache2.conf
+RUN echo "    Require all granted" >> /etc/apache2/apache2.conf
+RUN echo "</Directory>" >> /etc/apache2/apache2.conf
+RUN a2enmod rewrite
+
+RUN cd /tmp && curl -sS https://getcomposer.org/installer | php
+RUN cd /tmp && mv composer.phar /usr/local/bin/composer
+RUN chmod +x /usr/local/bin/composer
+
+RUN composer --working-dir=lib/pkp install
+RUN composer --working-dir=plugins/paymethod/paypal install
+RUN composer --working-dir=plugins/generic/citationStyleLanguage install
+
+# npm config set user 0
+# npm config set unsafe-perm true
+# ENV NODE_VERSION=16.13.0
+# RUN apt install -y curl
+# RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+# ENV NVM_DIR=/root/.nvm
+# RUN . "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION}
+# RUN . "$NVM_DIR/nvm.sh" && nvm use v${NODE_VERSION}
+# RUN . "$NVM_DIR/nvm.sh" && nvm alias default v${NODE_VERSION}
+# ENV PATH="/root/.nvm/versions/node/v${NODE_VERSION}/bin/:${PATH}"
+# RUN node --version
+# RUN npm --version
+# RUN npm install
+# RUN npm run build
+
+# prod
+
+COPY DockerfileEntryPoint.sh /usr/local/bin/DockerfileEntryPoint.sh
+RUN chmod 744 /usr/local/bin/DockerfileEntryPoint.sh
+# COPY . /var/www/html
+ENTRYPOINT ["DockerfileEntryPoint.sh"]
+
+# dev
+# ENTRYPOINT ["apache2", "-DFOREGROUND"]

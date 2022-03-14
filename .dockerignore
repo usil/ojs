@@ -1,4 +1,4 @@
-#config.inc.php
+/config.inc.php
 ./build
 temp
 /files
@@ -9,7 +9,7 @@ temp
 .settings
 .DS_Store
 .php_cs.cache
-node_modules
+#node_modules
 js/build.js
 js/hot-updates
 styles/build.css

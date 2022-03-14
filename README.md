@@ -33,6 +33,17 @@ If your PHP version supports built-in development server :
 
 See the [Documentation Hub][doc-hub] for a more complete development guide.
 
+## Using with docker
+
+https://musaamin.web.id/install-open-journal-systems-ubuntu/
+
+docker rm ojs -f &&\
+docker build -f Dockerfile_dev -t ojs . &&\
+docker run -it --name ojs -v $(pwd):/var/www/html -p 8080:80 ojs
+
+4c2c547d-06cf-4e1d-8c93-9647f6c5c05einspiron1inspiron2
+ojs2.localhost:8080
+
 ## Running Tests
 
 We recommend using [Travis](https://travis-ci.org/) for continuous-integration
